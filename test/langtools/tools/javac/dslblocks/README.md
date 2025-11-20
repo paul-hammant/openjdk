@@ -72,10 +72,29 @@ Outer outer = temp;
 
 Based on the blog post: https://paulhammant.com/2025/02/17/another-feature-for-the-java-language/
 
-## Testing
+## Test Suite
 
-Run the example:
+The feature includes comprehensive automated tests following OpenJDK conventions:
+
+### Positive Tests
+- **DslBlock01.java**: Basic DSL block invocation syntax
+- **DslBlock02.java**: Nested DSL block invocations
+- **DslBlock03.java**: DSL blocks with method arguments
+- **DslBlock04.java**: DSL blocks with instance methods
+- **DslBlock05.java**: DSL block chaining patterns
+
+### Negative Tests
+- **DslBlockNeg01.java**: Error handling for void method blocks
+
+### Running Tests
+
+Using OpenJDK's jtreg test framework:
 ```bash
-javac test/langtools/tools/javac/dslblocks/DslBlockExample.java
-java -cp test/langtools/tools/javac/dslblocks DslBlockExample
+jtreg test/langtools/tools/javac/dslblocks/
+```
+
+Or run individual tests:
+```bash
+javac test/langtools/tools/javac/dslblocks/DslBlock01.java
+java -cp test/langtools/tools/javac/dslblocks DslBlock01
 ```
