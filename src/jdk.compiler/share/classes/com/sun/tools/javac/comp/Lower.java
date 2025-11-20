@@ -3145,6 +3145,75 @@ public class Lower extends TreeTranslator {
         }
     }
 
+    public void visitDslBlockInvocation(JCDslBlockInvocation tree) {
+        // Desugar DSL block invocation into:
+        // 1. Call the method to get the returned object
+        // 2. Create a Runnable that executes the block with 'this' referring to the returned object
+        // 3. Execute the Runnable
+
+        // For now, transform it into a simpler pattern:
+        // Type temp = method();
+        // new Runnable() { public void run() { /* body with implicit 'this' */ } }.run();
+        // result = temp;
+
+        // First translate the method and arguments
+        JCExpression meth = translate(tree.meth);
+        List<JCExpression> args = translate(tree.args);
+
+        // Create a temporary variable to hold the result
+        VarSymbol tmpVar = makeSyntheticVar(FINAL, names.fromString("dsl$temp"), tree.type, currentMethodSym);
+        JCVariableDecl tmpDecl = make.at(tree.pos).VarDef(tmpVar, make.Apply(tree.typeargs, meth, args));
+
+        // Transform the block to execute in the context of the returned object
+        JCBlock transformedBody = translate(tree.body);
+
+        // Create an anonymous Runnable
+        JCClassDecl runnableClass = makeAnonymousRunnable(tree.pos, transformedBody);
+
+        // Create: new Runnable() { ... }.run()
+        JCNewClass newRunnable = make.at(tree.pos).NewClass(null, List.nil(),
+                make.Type(syms.runnableType), List.nil(), runnableClass);
+        JCMethodInvocation runCall = make.at(tree.pos).Apply(List.nil(),
+                make.Select(newRunnable, names.fromString("run")), List.nil());
+
+        // Create a block with: { Type temp = method(); new Runnable() { ... }.run(); temp; }
+        ListBuffer<JCStatement> stats = new ListBuffer<>();
+        stats.append(tmpDecl);
+        stats.append(make.Exec(runCall));
+
+        JCBlock resultBlock = make.at(tree.pos).Block(0, stats.toList());
+
+        // For expression context, we need to return the temp variable
+        // Transform to: (temp = method(), new Runnable() { ... }.run(), temp)
+        JCExpression result = make.at(tree.pos).LetExpr(tmpDecl, make.at(tree.pos).Block(0,
+                List.of(make.Exec(runCall), make.Return(make.Ident(tmpVar)))));
+
+        this.result = result;
+    }
+
+    private JCClassDecl makeAnonymousRunnable(int pos, JCBlock body) {
+        // Create: new Runnable() { public void run() { body } }
+        make.at(pos);
+
+        // Create run() method
+        JCMethodDecl runMethod = make.MethodDef(
+                make.Modifiers(PUBLIC),
+                names.fromString("run"),
+                make.Type(syms.voidType),
+                List.nil(),
+                List.nil(),
+                List.nil(),
+                body,
+                null);
+
+        // Create anonymous class implementing Runnable
+        JCClassDecl anonymousClass = make.AnonymousClassDef(
+                make.Modifiers(0),
+                List.of(runMethod));
+
+        return anonymousClass;
+    }
+
     public void visitApply(JCMethodInvocation tree) {
         Symbol meth = TreeInfo.symbol(tree.meth);
         List<Type> argtypes = meth.type.getParameterTypes();

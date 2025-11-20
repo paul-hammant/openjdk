@@ -2351,6 +2351,14 @@ public class JavacParser implements Parser {
     JCExpression arguments(List<JCExpression> typeArgs, JCExpression t) {
         int pos = token.pos;
         List<JCExpression> args = arguments();
+
+        // Check for DSL block syntax: method() { ... }
+        if (token.kind == LBRACE && isMode(EXPR)) {
+            JCBlock body = block();
+            JCExpression dslInvocation = F.at(pos).DslBlockInvocation(typeArgs, t, args, body);
+            return toP(dslInvocation);
+        }
+
         JCExpression mi = F.at(pos).Apply(typeArgs, t, args);
         if (t.hasTag(IDENT) && isInvalidUnqualifiedMethodIdentifier(((JCIdent) t).pos,
                                                                     ((JCIdent) t).name)) {

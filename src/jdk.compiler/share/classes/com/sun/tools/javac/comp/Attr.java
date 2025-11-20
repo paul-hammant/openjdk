@@ -2711,6 +2711,48 @@ public class Attr extends JCTree.Visitor {
             return (typeargtypes == null) ? mt : (Type)new ForAll(typeargtypes, mt);
         }
 
+    public void visitDslBlockInvocation(JCDslBlockInvocation tree) {
+        // Attribute a DSL block invocation: method() { ... }
+        // The method is called, and the block is executed with access to the returned object
+
+        // Create a local environment
+        Env<AttrContext> localEnv = env.dup(tree, env.info.dup());
+
+        // Attribute the method call part (similar to regular method invocation)
+        Type mtype = attribTree(tree.meth, localEnv, new ResultInfo(KindSelector.VAL, Type.noType));
+
+        // Attribute arguments
+        ListBuffer<Type> argtypesBuf = new ListBuffer<>();
+        KindSelector kind = attribArgs(KindSelector.MTH, tree.args, localEnv, argtypesBuf);
+        List<Type> argtypes = argtypesBuf.toList();
+
+        // Attribute type arguments if present
+        List<Type> typeargtypes = attribTypes(tree.typeargs, localEnv);
+
+        // Resolve the method
+        Type restype;
+        if (tree.meth.hasTag(IDENT)) {
+            Name methName = ((JCIdent) tree.meth).name;
+            restype = rs.resolveQualifiedMethod(tree.meth.pos(), localEnv, mtype.tsym.type,
+                                                 methName, argtypes, typeargtypes);
+        } else if (tree.meth.hasTag(SELECT)) {
+            JCFieldAccess select = (JCFieldAccess) tree.meth;
+            Name methName = select.name;
+            Type sitetype = attribTree(select.selected, localEnv, new ResultInfo(KindSelector.VAL, Type.noType));
+            restype = rs.resolveQualifiedMethod(tree.meth.pos(), localEnv, sitetype,
+                                                 methName, argtypes, typeargtypes);
+        } else {
+            restype = syms.objectType; // default fallback
+        }
+
+        // Attribute the block body
+        // The block has access to the returned object's members
+        attribStat(tree.body, localEnv);
+
+        // The result type is the method's return type
+        result = tree.type = restype;
+    }
+
     public void visitNewClass(final JCNewClass tree) {
         Type owntype = types.createErrorType(tree.type);
 

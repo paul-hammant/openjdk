@@ -213,6 +213,10 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
          */
         APPLY,
 
+        /** DSL block invocation expressions, of type DslBlockInvocation.
+         */
+        DSLBLOCKINVOCATION,
+
         /** Class instance creation expressions, of type NewClass.
          */
         NEWCLASS,
@@ -1896,6 +1900,42 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
     }
 
     /**
+     * A DSL block invocation: method() { ... }
+     * Allows method-centric DSL syntax with implicit 'this' references.
+     */
+    public static class JCDslBlockInvocation extends JCExpression {
+        public List<JCExpression> typeargs;
+        public JCExpression meth;
+        public List<JCExpression> args;
+        public JCBlock body;
+        protected JCDslBlockInvocation(List<JCExpression> typeargs,
+                                       JCExpression meth,
+                                       List<JCExpression> args,
+                                       JCBlock body)
+        {
+            this.typeargs = (typeargs == null) ? List.nil() : typeargs;
+            this.meth = meth;
+            this.args = args;
+            this.body = body;
+        }
+        @Override
+        public void accept(Visitor v) { v.visitDslBlockInvocation(this); }
+
+        @Override
+        public Kind getKind() { return Kind.OTHER; }
+
+        @Override @DefinedBy(Api.COMPILER_TREE)
+        public <R,D> R accept(TreeVisitor<R,D> v, D d) {
+            // For now, treat as method invocation for public API
+            return v.visitOther(this, d);
+        }
+        @Override
+        public Tag getTag() {
+            return DSLBLOCKINVOCATION;
+        }
+    }
+
+    /**
      * A new(...) operation.
      */
     public static class JCNewClass extends JCPolyExpression implements NewClassTree {
@@ -3567,6 +3607,7 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
         public void visitThrow(JCThrow that)                 { visitTree(that); }
         public void visitAssert(JCAssert that)               { visitTree(that); }
         public void visitApply(JCMethodInvocation that)      { visitTree(that); }
+        public void visitDslBlockInvocation(JCDslBlockInvocation that) { visitTree(that); }
         public void visitNewClass(JCNewClass that)           { visitTree(that); }
         public void visitNewArray(JCNewArray that)           { visitTree(that); }
         public void visitLambda(JCLambda that)               { visitTree(that); }
