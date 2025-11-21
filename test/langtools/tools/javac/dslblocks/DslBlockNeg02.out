@@ -1,0 +1,3 @@
+DslBlockNeg02.java:20:17: compiler.err.cant.resolve.location: kindname.method, primitiveInt, , , (compiler.misc.location: kindname.class, DslBlockNeg02, null)
+DslBlockNeg02.java:25:21: compiler.err.cant.resolve.location: kindname.method, primitiveBoolean, , , (compiler.misc.location: kindname.class, DslBlockNeg02, null)
+2 errors
