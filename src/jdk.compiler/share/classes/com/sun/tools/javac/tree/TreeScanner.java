@@ -255,6 +255,13 @@ public class TreeScanner extends Visitor {
         scan(tree.args);
     }
 
+    public void visitDslBlockInvocation(JCDslBlockInvocation tree) {
+        scan(tree.typeargs);
+        scan(tree.meth);
+        scan(tree.args);
+        scan(tree.body);
+    }
+
     public void visitNewClass(JCNewClass tree) {
         scan(tree.encl);
         scan(tree.typeargs);

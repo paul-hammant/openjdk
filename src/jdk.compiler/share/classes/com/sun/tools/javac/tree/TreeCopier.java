@@ -311,6 +311,14 @@ public class TreeCopier<P> implements TreeVisitor<JCTree,P> {
         return M.at(t.pos).Apply(typeargs, meth, args);
     }
 
+    public JCTree visitDslBlockInvocation(JCDslBlockInvocation t, P p) {
+        List<JCExpression> typeargs = copy(t.typeargs, p);
+        JCExpression meth = copy(t.meth, p);
+        List<JCExpression> args = copy(t.args, p);
+        JCBlock body = copy(t.body, p);
+        return M.at(t.pos).DslBlockInvocation(typeargs, meth, args, body);
+    }
+
     @DefinedBy(Api.COMPILER_TREE)
     public JCTree visitModifiers(ModifiersTree node, P p) {
         JCModifiers t = (JCModifiers) node;

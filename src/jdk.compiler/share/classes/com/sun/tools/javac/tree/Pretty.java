@@ -1181,6 +1181,35 @@ public class Pretty extends JCTree.Visitor {
         }
     }
 
+    public void visitDslBlockInvocation(JCDslBlockInvocation tree) {
+        try {
+            if (!tree.typeargs.isEmpty()) {
+                if (tree.meth.hasTag(SELECT)) {
+                    JCFieldAccess left = (JCFieldAccess)tree.meth;
+                    printExpr(left.selected);
+                    print(".<");
+                    printExprs(tree.typeargs);
+                    print('>');
+                    print(left.name);
+                } else {
+                    print('<');
+                    printExprs(tree.typeargs);
+                    print('>');
+                    printExpr(tree.meth);
+                }
+            } else {
+                printExpr(tree.meth);
+            }
+            print('(');
+            printExprs(tree.args);
+            print(')');
+            print(" ");
+            printStat(tree.body);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
     public void visitNewClass(JCNewClass tree) {
         try {
             if (tree.encl != null) {

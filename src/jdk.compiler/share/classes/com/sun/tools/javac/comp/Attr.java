@@ -2733,14 +2733,16 @@ public class Attr extends JCTree.Visitor {
         Type restype;
         if (tree.meth.hasTag(IDENT)) {
             Name methName = ((JCIdent) tree.meth).name;
-            restype = rs.resolveQualifiedMethod(tree.meth.pos(), localEnv, mtype.tsym.type,
-                                                 methName, argtypes, typeargtypes);
+            Symbol methSym = rs.resolveQualifiedMethod(tree.meth.pos(), localEnv, mtype.tsym.type,
+                                                        methName, argtypes, typeargtypes);
+            restype = methSym.type;
         } else if (tree.meth.hasTag(SELECT)) {
             JCFieldAccess select = (JCFieldAccess) tree.meth;
             Name methName = select.name;
             Type sitetype = attribTree(select.selected, localEnv, new ResultInfo(KindSelector.VAL, Type.noType));
-            restype = rs.resolveQualifiedMethod(tree.meth.pos(), localEnv, sitetype,
-                                                 methName, argtypes, typeargtypes);
+            Symbol methSym = rs.resolveQualifiedMethod(tree.meth.pos(), localEnv, sitetype,
+                                                        methName, argtypes, typeargtypes);
+            restype = methSym.type;
         } else {
             restype = syms.objectType; // default fallback
         }
