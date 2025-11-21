@@ -3145,6 +3145,97 @@ public class Lower extends TreeTranslator {
         }
     }
 
+    public void visitDslBlockInvocation(JCDslBlockInvocation tree) {
+        // Desugar DSL block invocation into:
+        // { Type temp = method(args);
+        //   <transformed block body where 'this' and bare method calls refer to temp>
+        //   temp }
+
+        // First translate the method and arguments
+        JCExpression meth = translate(tree.meth);
+        List<JCExpression> args = translate(tree.args);
+
+        // Create a temporary variable to hold the result
+        VarSymbol tmpVar = new VarSymbol(FINAL | SYNTHETIC, names.fromString("dsl$temp"), tree.type, currentMethodSym);
+        JCVariableDecl tmpDecl = make.at(tree.pos).VarDef(tmpVar, make.Apply(tree.typeargs, meth, args));
+
+        // Transform the block body: replace bare method calls with calls on the temp variable
+        // and replace 'this' with the temp variable
+        JCBlock originalBody = tree.body;
+        List<JCStatement> transformedStatements = new DslBlockTransformer(tmpVar).transformStatements(originalBody.stats);
+
+        // Create a block that contains: temp = method(); <transformed statements>; temp
+        ListBuffer<JCStatement> allStats = new ListBuffer<>();
+        allStats.append(tmpDecl);
+        allStats.appendList(transformedStatements);
+
+        JCBlock resultBlock = make.at(tree.pos).Block(0, allStats.toList());
+
+        // Wrap in LetExpr so the block executes and returns the temp variable
+        JCExpression result = make.at(tree.pos).LetExpr(tmpDecl, make.Ident(tmpVar));
+
+        this.result = result;
+    }
+
+    private class DslBlockTransformer extends TreeTranslator {
+        VarSymbol tmpVar;
+
+        DslBlockTransformer(VarSymbol tmpVar) {
+            this.tmpVar = tmpVar;
+        }
+
+        List<JCStatement> transformStatements(List<JCStatement> stats) {
+            ListBuffer<JCStatement> transformed = new ListBuffer<>();
+            for (JCStatement stat : stats) {
+                transformed.append(translate(stat));
+            }
+            return transformed.toList();
+        }
+
+        @Override
+        public void visitIdent(JCIdent tree) {
+            if (tree.name == names._this) {
+                // Replace 'this' with the temp variable
+                result = make.Ident(tmpVar);
+            } else {
+                super.visitIdent(tree);
+            }
+        }
+
+        @Override
+        public void visitApply(JCMethodInvocation tree) {
+            // If this is a bare method call (no explicit receiver), make it a call on the temp variable
+            if (tree.meth.hasTag(IDENT)) {
+                JCIdent methodName = (JCIdent) tree.meth;
+                tree.meth = make.Select(make.Ident(tmpVar), methodName.name);
+            }
+            super.visitApply(tree);
+        }
+    }
+
+    private JCClassDecl makeAnonymousRunnable(int pos, JCBlock body) {
+        // Create: new Runnable() { public void run() { body } }
+        make.at(pos);
+
+        // Create run() method
+        JCMethodDecl runMethod = make.MethodDef(
+                make.Modifiers(PUBLIC),
+                names.fromString("run"),
+                make.Type(syms.voidType),
+                List.nil(),
+                List.nil(),
+                List.nil(),
+                body,
+                null);
+
+        // Create anonymous class implementing Runnable
+        JCClassDecl anonymousClass = make.AnonymousClassDef(
+                make.Modifiers(0),
+                List.of(runMethod));
+
+        return anonymousClass;
+    }
+
     public void visitApply(JCMethodInvocation tree) {
         Symbol meth = TreeInfo.symbol(tree.meth);
         List<Type> argtypes = meth.type.getParameterTypes();

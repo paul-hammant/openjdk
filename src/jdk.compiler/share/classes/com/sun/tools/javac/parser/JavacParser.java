@@ -2351,6 +2351,15 @@ public class JavacParser implements Parser {
     JCExpression arguments(List<JCExpression> typeArgs, JCExpression t) {
         int pos = token.pos;
         List<JCExpression> args = arguments();
+
+        // Check for DSL block syntax: method() { ... }
+        // Allow DSL blocks in both expression and statement contexts
+        if (token.kind == LBRACE) {
+            JCBlock body = block();
+            JCExpression dslInvocation = F.at(pos).DslBlockInvocation(typeArgs, t, args, body);
+            return toP(dslInvocation);
+        }
+
         JCExpression mi = F.at(pos).Apply(typeArgs, t, args);
         if (t.hasTag(IDENT) && isInvalidUnqualifiedMethodIdentifier(((JCIdent) t).pos,
                                                                     ((JCIdent) t).name)) {
@@ -3047,7 +3056,10 @@ public class JavacParser implements Parser {
             } else {
                 // This Exec is an "ExpressionStatement"; it subsumes the terminating semicolon
                 t = checkExprStat(t);
-                accept(SEMI);
+                // DSL block invocations don't require semicolons (they end with the block)
+                if (!t.hasTag(DSLBLOCKINVOCATION)) {
+                    accept(SEMI);
+                }
                 JCExpressionStatement expr = toP(F.at(pos).Exec(t));
                 return List.of(expr);
             }

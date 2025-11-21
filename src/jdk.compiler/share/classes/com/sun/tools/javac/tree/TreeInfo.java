@@ -417,7 +417,7 @@ public class TreeInfo {
             case SL_ASG: case SR_ASG: case USR_ASG:
             case PLUS_ASG: case MINUS_ASG:
             case MUL_ASG: case DIV_ASG: case MOD_ASG:
-            case APPLY: case NEWCLASS:
+            case APPLY: case NEWCLASS: case DSLBLOCKINVOCATION:
             case ERRONEOUS:
                 return true;
             default:

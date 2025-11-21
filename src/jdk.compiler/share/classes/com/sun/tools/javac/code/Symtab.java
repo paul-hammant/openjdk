@@ -206,6 +206,7 @@ public class Symtab {
     public final Type deprecatedType;
     public final Type suppressWarningsType;
     public final Type supplierType;
+    public final Type runnableType;
     public final Type inheritedType;
     public final Type profileType;
     public final Type proprietaryType;
@@ -592,6 +593,7 @@ public class Symtab {
         deprecatedType = enterClass("java.lang.Deprecated");
         suppressWarningsType = enterClass("java.lang.SuppressWarnings");
         supplierType = enterClass("java.util.function.Supplier");
+        runnableType = enterClass("java.lang.Runnable");
         inheritedType = enterClass("java.lang.annotation.Inherited");
         repeatableType = enterClass("java.lang.annotation.Repeatable");
         documentedType = enterClass("java.lang.annotation.Documented");

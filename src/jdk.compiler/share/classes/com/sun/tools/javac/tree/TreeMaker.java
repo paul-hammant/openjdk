@@ -406,6 +406,16 @@ public class TreeMaker implements JCTree.Factory {
         return tree;
     }
 
+    public JCDslBlockInvocation DslBlockInvocation(List<JCExpression> typeargs,
+                                                    JCExpression fn,
+                                                    List<JCExpression> args,
+                                                    JCBlock body)
+    {
+        JCDslBlockInvocation tree = new JCDslBlockInvocation(typeargs, fn, args, body);
+        tree.pos = pos;
+        return tree;
+    }
+
     public JCNewClass NewClass(JCExpression encl,
                              List<JCExpression> typeargs,
                              JCExpression clazz,
