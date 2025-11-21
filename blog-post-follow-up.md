@@ -9,6 +9,37 @@ comments: true
 
 A couple weeks ago, I [proposed a method-centric DSL feature for Java](https://paulhammant.com/2025/02/17/another-feature-for-the-java-language/). Well, I went ahead and implemented it in OpenJDK to see how it would actually work. Here's what I learned.
 
+## What to Call This Feature?
+
+Before diving in, let's clear up some terminology confusion. Someone suggested this is "tail recursion" - **it's not**. There's no recursion happening at all.
+
+The correct computer science terms for this pattern are:
+
+- **Scope function** (Kotlin terminology) - a function that creates a scope for operations on an object
+- **Block with implicit receiver** (Smalltalk/Ruby terminology) - a code block where method calls implicitly target a receiver object
+- **Let expression** (functional programming) - binding a value to use in a scope, though ours is imperative
+- **Trailing lambda with context** (general lambda calculus)
+
+The closest existing feature in other languages:
+- **Kotlin's `apply`/`also`** - scope functions with lambda receivers
+- **Ruby's block with `instance_eval`** - evaluating a block in an object's context
+- **Groovy's DSL builder blocks** - builder pattern with closure delegation
+- **Smalltalk's cascade operator** - chaining messages to the same receiver (though that's `object msg1; msg2; msg3` syntax)
+
+Our implementation is essentially a **scope function** where the method's return value becomes the implicit target for all unqualified method calls within the block.
+
+**Tail recursion**, by contrast, is when a function's last action is to call itself (or another function), allowing stack optimization:
+
+```java
+// This is tail recursion (not our feature!)
+int factorial(int n, int acc) {
+    if (n == 0) return acc;
+    return factorial(n - 1, n * acc); // tail call
+}
+```
+
+Completely unrelated.
+
 ## The Feature, Refresher
 
 The idea was to allow this syntax:
@@ -154,6 +185,8 @@ new Runnable() {
 }.run();
 Builder b = dsl$temp;
 ```
+
+This is essentially a **let expression** in imperative form: bind the method result to a temporary, execute a block that uses it, then return the temporary.
 
 ## What Works Well
 
