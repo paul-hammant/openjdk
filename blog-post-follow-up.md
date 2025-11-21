@@ -15,18 +15,46 @@ Before diving in, let's clear up some terminology confusion. Someone suggested t
 
 The correct computer science terms for this pattern are:
 
+### Established Terms from Other Languages:
+
 - **Scope function** (Kotlin terminology) - a function that creates a scope for operations on an object
 - **Block with implicit receiver** (Smalltalk/Ruby terminology) - a code block where method calls implicitly target a receiver object
+- **Trailing closure/lambda** (Swift terminology) - a closure that appears after the method call
 - **Let expression** (functional programming) - binding a value to use in a scope, though ours is imperative
-- **Trailing lambda with context** (general lambda calculus)
 
-The closest existing feature in other languages:
+### Terms Emphasizing the "After" Aspect:
+
+You're right that the temporal aspect matters - the block comes *after* the method invocation. Good descriptive terms include:
+
+- **Post-invocation block** - emphasizes it executes after the method returns
+- **Trailing block** - following Swift's "trailing closure" terminology
+- **Method closure** - a closure attached to a method call
+- **Suffix block** - the block is syntactically a suffix to the call
+- **Post-method block** - clear and descriptive
+- **Continuation block** - though "continuation" has other meanings in CS
+
+**Swift's "trailing closure"** is probably the most established precedent:
+
+```swift
+// Swift trailing closure
+array.map() { item in
+    return item * 2
+}
+```
+
+Our Java version would be called a **"trailing block"** or **"post-invocation block"** by this nomenclature.
+
+### Closest Existing Features:
+
 - **Kotlin's `apply`/`also`** - scope functions with lambda receivers
 - **Ruby's block with `instance_eval`** - evaluating a block in an object's context
 - **Groovy's DSL builder blocks** - builder pattern with closure delegation
 - **Smalltalk's cascade operator** - chaining messages to the same receiver (though that's `object msg1; msg2; msg3` syntax)
+- **Swift's trailing closures** - closures that appear after function arguments
 
-Our implementation is essentially a **scope function** where the method's return value becomes the implicit target for all unqualified method calls within the block.
+Our implementation is essentially a **trailing block** or **scope function** where the method's return value becomes the implicit target for all unqualified method calls within the block.
+
+### What It's NOT:
 
 **Tail recursion**, by contrast, is when a function's last action is to call itself (or another function), allowing stack optimization:
 
@@ -38,7 +66,7 @@ int factorial(int n, int acc) {
 }
 ```
 
-Completely unrelated.
+Completely unrelated - no recursion happens in our feature.
 
 ## The Feature, Refresher
 
